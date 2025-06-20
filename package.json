@@ -1,0 +1,33 @@
+{
+  "name": "@wayrapro/qullqa",
+  "version": "0.1.0",
+  "description": "MCP server for qullqa",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "prepare": "npm run build",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["mcp", "qullqa"],
+  "author": "wayrapro",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "zod": "^3.23.8",
+    "hono": "^4.6.14",
+    "@hono/node-server": "^1.14.0",
+    "node-persist": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.15.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
