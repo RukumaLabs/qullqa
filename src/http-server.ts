@@ -5,8 +5,15 @@ import { storageInstance } from './storage.js';
 
 const app = new Hono();
 
-// Enable CORS
-app.use('*', cors());
+// Enable CORS with permissive settings for Claude artifacts
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 3600,
+  credentials: true,
+}));
 
 // Root route - HTML interface
 app.get('/', async (c) => {
@@ -136,6 +143,12 @@ app.get('/', async (c) => {
   `;
   
   return c.html(html);
+});
+
+// API endpoint for listing items
+app.get('/api/list', async (c) => {
+  const items = await storageInstance.list();
+  return c.json({ items });
 });
 
 // API endpoint for deletion

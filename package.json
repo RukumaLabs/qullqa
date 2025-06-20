@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
+    "start-server": "tsx src/standalone-server.js",
     "prepare": "npm run build",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"
