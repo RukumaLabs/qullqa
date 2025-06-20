@@ -5,11 +5,8 @@ import { storageInstance } from './storage.js';
 import { artifactStorage } from './artifact-storage.js';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { readFile } from 'fs/promises';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from 'path';
+import { storagePath } from './utils/storage-path.js';
 
 const app = new Hono();
 
@@ -160,6 +157,12 @@ app.get('/', async (c) => {
 app.get('/api/list', async (c) => {
   const items = await storageInstance.list();
   return c.json({ items });
+});
+
+// API endpoint for storage info
+app.get('/api/info', async (c) => {
+  const info = storagePath.getInfo();
+  return c.json(info);
 });
 
 // API endpoint for deletion
@@ -369,7 +372,7 @@ app.get('/a/:workspace/:id/', async (c) => {
   const id = c.req.param('id');
   
   try {
-    const artifactPath = join(__dirname, '..', 'artifacts', workspace, id, 'latest', 'index.html');
+    const artifactPath = join(storagePath.getArtifactsDir(), workspace, id, 'latest', 'index.html');
     const html = await readFile(artifactPath, 'utf-8');
     
     // Explicit HTML headers for clarity
@@ -392,7 +395,7 @@ app.get('/a/:workspace/:id/v:version/', async (c) => {
   const version = c.req.param('version');
   
   try {
-    const versionPath = join(__dirname, '..', 'artifacts', workspace, id, 'versions', `v${version}`, 'index.html');
+    const versionPath = join(storagePath.getArtifactsDir(), workspace, id, 'versions', `v${version}`, 'index.html');
     const html = await readFile(versionPath, 'utf-8');
     
     // Explicit HTML headers for clarity

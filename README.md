@@ -24,6 +24,18 @@ Qullqa is a Model Context Protocol (MCP) server that provides persistent storage
 - Web interfaces for both storage systems
 - RESTful API endpoints
 
+### 🎨 CSS Framework Support (New!)
+- Built-in CDN support for popular CSS frameworks
+- Tailwind CSS, DaisyUI, Bootstrap, and Bulma
+- Configurable preferences for Claude artifacts
+- Modern web practices (dark mode, accessibility)
+
+### 📁 Cross-Platform Storage
+- Persistent storage in user's home directory
+- Follows XDG Base Directory specification on Linux
+- Platform-specific paths for macOS and Windows
+- No more data loss when updating the package!
+
 ## Installation
 
 ```bash
@@ -111,14 +123,35 @@ Access at `http://localhost:1337/artifacts`
 - `PUT /api/artifacts/:id` - Update artifact
 - `DELETE /api/artifacts/:id/v/:version` - Delete version
 
-## Storage Structure
+## Storage Location
 
+Qullqa stores data in your user directory for persistence:
+
+### Linux
+- Data: `~/.local/share/qullqa/` (or `$XDG_DATA_HOME/qullqa`)
+- Config: `~/.config/qullqa/` (or `$XDG_CONFIG_HOME/qullqa`)
+
+### macOS
+- Data: `~/Library/Application Support/qullqa/`
+- Config: `~/Library/Preferences/qullqa/`
+
+### Windows
+- Data & Config: `%APPDATA%/qullqa/`
+
+### Storage Structure
 ```
-storage/
-├── artifacts/          # Versioned artifacts
-│   └── {artifactId}/
-│       └── manifest.json
-└── {hash}             # Simple storage items
+~/.local/share/qullqa/           # Linux example
+├── artifacts/                   # Versioned HTML artifacts
+│   └── {workspace}/
+│       └── {artifactId}/
+│           ├── metadata.json
+│           ├── latest/
+│           │   └── index.html
+│           └── versions/
+│               └── v1/
+│                   └── index.html
+└── storage/                     # Simple key-value storage
+    └── {hash}
 ```
 
 ## Examples
@@ -169,6 +202,26 @@ npm run dev
 # Start HTTP server standalone
 npm run start-server
 ```
+
+## CSS Framework Configuration
+
+Use the `set-output-preferences` tool to configure Claude's HTML generation:
+
+```javascript
+// Configure Claude to use Tailwind CSS with modern practices
+set-output-preferences({
+  css_framework: "tailwind",      // Options: tailwind, daisyui, bootstrap, bulma, none
+  use_cdn: true,                  // Include CDN links
+  include_modern_practices: true,  // Dark mode, accessibility, responsive design
+  workspace_name: "my-project"    // Default workspace for artifacts
+})
+```
+
+This tells Claude to:
+- Use Qullqa storage instead of default artifacts
+- Include your preferred CSS framework via CDN
+- Apply modern web development practices
+- Store all artifacts in your specified workspace
 
 ## License
 

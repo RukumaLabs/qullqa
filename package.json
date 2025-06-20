@@ -1,5 +1,5 @@
 {
-  "name": "qullqa",
+  "name": "@rukuma/qullqa",
   "version": "0.1.1",
   "description": "MCP server for qullqa",
   "type": "module",

@@ -222,6 +222,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Default workspace for automatic storage',
               default: 'user-projects',
             },
+            css_framework: {
+              type: 'string',
+              enum: ['tailwind', 'daisyui', 'bootstrap', 'bulma', 'none'],
+              description: 'Preferred CSS framework for HTML artifacts',
+              default: 'tailwind',
+            },
+            use_cdn: {
+              type: 'boolean',
+              description: 'Use CDN links for CSS frameworks',
+              default: true,
+            },
+            include_modern_practices: {
+              type: 'boolean',
+              description: 'Include modern web practices (dark mode, accessibility, responsive design)',
+              default: true,
+            },
           },
         },
       },

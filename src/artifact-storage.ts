@@ -1,9 +1,6 @@
 import { promises as fs } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from 'path';
+import { storagePath } from './utils/storage-path.js';
 
 export interface ArtifactMetadata {
   id: string;
@@ -23,10 +20,12 @@ export interface ArtifactVersion {
 }
 
 export class ArtifactStorage {
-  private artifactsDir = join(__dirname, '..', 'artifacts');
+  private get artifactsDir(): string {
+    return storagePath.getArtifactsDir();
+  }
 
   async init(): Promise<void> {
-    await fs.mkdir(this.artifactsDir, { recursive: true });
+    await storagePath.ensureDirectories();
   }
 
   private getWorkspacePath(workspace: string): string {

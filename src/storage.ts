@@ -1,10 +1,5 @@
 import storage from 'node-persist';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { storagePath } from './utils/storage-path.js';
 
 export interface StoredItem {
   name: string;
@@ -16,13 +11,15 @@ export interface StoredItem {
 
 export class Storage {
   private initialized = false;
-  private storageDir = join(__dirname, '..', 'storage');
 
   async init(): Promise<void> {
     if (this.initialized) return;
     
+    // Ensure storage directories exist
+    await storagePath.ensureDirectories();
+    
     await storage.init({
-      dir: this.storageDir,
+      dir: storagePath.getStorageDir(),
       stringify: JSON.stringify,
       parse: JSON.parse,
       encoding: 'utf8',
