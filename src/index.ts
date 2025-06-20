@@ -13,6 +13,7 @@ import { executeUpdateArtifact, updateArtifactSchema } from './tools/update-arti
 import { executeGetArtifactUrl, getArtifactUrlSchema } from './tools/get-artifact-url.js';
 import { executeListWorkspaces, listWorkspacesSchema } from './tools/list-workspaces.js';
 import { executeListWorkspaceArtifacts, listWorkspaceArtifactsSchema } from './tools/list-workspace-artifacts.js';
+import { executeSetOutputPreferences, setOutputPreferencesSchema } from './tools/set-output-preferences.js';
 import { processManager } from './process-manager.js';
 import { storageInstance } from './storage.js';
 import { artifactStorage } from './artifact-storage.js';
@@ -20,7 +21,7 @@ import { artifactStorage } from './artifact-storage.js';
 // Create server instance
 const server = new Server(
   {
-    name: '@wayrapro/qullqa',
+    name: '@rukuma/qullqa',
     version: '0.1.0',
   },
   {
@@ -36,7 +37,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'store-data',
-        description: 'Store data under a specified name to be served via HTTP',
+        description: 'Store data under a specified name to be served via HTTP. Perfect for saving research results, JSON data, CSV files, or any content that needs to be accessed later via URL.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -97,7 +98,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'store-artifact',
-        description: 'Store an HTML artifact with versioning support',
+        description: 'Store an HTML artifact with versioning support. The HTML is served directly with Content-Type: text/html and can be embedded in iframes or accessed via browser. Perfect for data visualizations, dashboards, and interactive content.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -153,7 +154,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'get-artifact-url',
-        description: 'Get the URL for an artifact',
+        description: 'Get the URL for a stored HTML artifact. Returns a direct link that serves the HTML with proper headers for browser rendering.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -193,6 +194,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ['workspace'],
+        },
+      },
+      {
+        name: 'set-output-preferences',
+        description: 'Configure Claude to prefer Qullqa storage over default artifacts. This instructs Claude to automatically use store-data for research results and store-artifact for HTML visualizations.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            prefer_qullqa_storage: {
+              type: 'boolean',
+              description: 'Prefer Qullqa storage over default artifacts',
+              default: true,
+            },
+            auto_store_data: {
+              type: 'boolean',
+              description: 'Automatically store research data',
+              default: true,
+            },
+            auto_store_artifacts: {
+              type: 'boolean',
+              description: 'Automatically store HTML visualizations',
+              default: true,
+            },
+            workspace_name: {
+              type: 'string',
+              description: 'Default workspace for automatic storage',
+              default: 'user-projects',
+            },
+          },
         },
       },
     ],
@@ -252,6 +282,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case 'list-workspace-artifacts': {
       const validatedInput = listWorkspaceArtifactsSchema.parse(args);
       return await executeListWorkspaceArtifacts(validatedInput);
+    }
+    
+    case 'set-output-preferences': {
+      const validatedInput = setOutputPreferencesSchema.parse(args);
+      return await executeSetOutputPreferences(validatedInput);
     }
     
     default:

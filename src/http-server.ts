@@ -372,8 +372,13 @@ app.get('/a/:workspace/:id/', async (c) => {
     const artifactPath = join(__dirname, '..', 'artifacts', workspace, id, 'latest', 'index.html');
     const html = await readFile(artifactPath, 'utf-8');
     
+    // Explicit HTML headers for clarity
+    c.header('Content-Type', 'text/html; charset=utf-8');
     c.header('X-Frame-Options', 'ALLOWALL');
     c.header('Content-Security-Policy', "frame-ancestors *");
+    c.header('X-Artifact-Workspace', workspace);
+    c.header('X-Artifact-ID', id);
+    c.header('X-Artifact-Version', 'latest');
     return c.html(html);
   } catch (error) {
     return c.text('Artifact not found', 404);
@@ -390,8 +395,13 @@ app.get('/a/:workspace/:id/v:version/', async (c) => {
     const versionPath = join(__dirname, '..', 'artifacts', workspace, id, 'versions', `v${version}`, 'index.html');
     const html = await readFile(versionPath, 'utf-8');
     
+    // Explicit HTML headers for clarity
+    c.header('Content-Type', 'text/html; charset=utf-8');
     c.header('X-Frame-Options', 'ALLOWALL');
     c.header('Content-Security-Policy', "frame-ancestors *");
+    c.header('X-Artifact-Workspace', workspace);
+    c.header('X-Artifact-ID', id);
+    c.header('X-Artifact-Version', version);
     return c.html(html);
   } catch (error) {
     return c.text('Version not found', 404);

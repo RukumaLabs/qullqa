@@ -1,6 +1,6 @@
 {
-  "name": "@wayrapro/qullqa",
-  "version": "0.1.0",
+  "name": "qullqa",
+  "version": "0.1.1",
   "description": "MCP server for qullqa",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,9 +13,17 @@
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["mcp", "qullqa"],
-  "author": "wayrapro",
+  "keywords": ["mcp", "qullqa", "storage", "artifact", "hosting"],
+  "author": "atahualpa",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rukumalabs/qullqa.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rukumalabs/qullqa/issues"
+  },
+  "homepage": "https://github.com/rukumalabs/qullqa#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",
     "zod": "^3.23.8",
