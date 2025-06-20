@@ -3,14 +3,19 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { executeExampleTool, exampleToolSchema } from './tools/example.js';
 import { executeStoreData, storeDataSchema } from './tools/store-data.js';
 import { executeDeleteData, deleteDataSchema } from './tools/delete-data.js';
 import { executeListData, listDataSchema } from './tools/list-data.js';
 import { executeServerStatus, serverStatusSchema } from './tools/server-status.js';
 import { executeStartServer, startServerSchema } from './tools/start-server.js';
+import { executeStoreArtifact, storeArtifactSchema } from './tools/store-artifact.js';
+import { executeUpdateArtifact, updateArtifactSchema } from './tools/update-artifact.js';
+import { executeGetArtifactUrl, getArtifactUrlSchema } from './tools/get-artifact-url.js';
+import { executeListWorkspaces, listWorkspacesSchema } from './tools/list-workspaces.js';
+import { executeListWorkspaceArtifacts, listWorkspaceArtifactsSchema } from './tools/list-workspace-artifacts.js';
 import { processManager } from './process-manager.js';
 import { storageInstance } from './storage.js';
+import { artifactStorage } from './artifact-storage.js';
 
 // Create server instance
 const server = new Server(
@@ -90,6 +95,106 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {},
         },
       },
+      {
+        name: 'store-artifact',
+        description: 'Store an HTML artifact with versioning support',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            workspace: {
+              type: 'string',
+              description: 'The workspace name to organize artifacts',
+            },
+            id: {
+              type: 'string',
+              description: 'Unique identifier for the artifact (alphanumeric, hyphens, underscores only)',
+            },
+            html: {
+              type: 'string',
+              description: 'The HTML content of the artifact',
+            },
+            description: {
+              type: 'string',
+              description: 'Optional description of the artifact',
+            },
+            changelog: {
+              type: 'string',
+              description: 'Description of this version',
+            },
+          },
+          required: ['workspace', 'id', 'html'],
+        },
+      },
+      {
+        name: 'update-artifact',
+        description: 'Update an artifact with a new version',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            workspace: {
+              type: 'string',
+              description: 'The workspace name',
+            },
+            id: {
+              type: 'string',
+              description: 'The artifact identifier',
+            },
+            html: {
+              type: 'string',
+              description: 'The updated HTML content',
+            },
+            changelog: {
+              type: 'string',
+              description: 'Description of what changed in this version',
+            },
+          },
+          required: ['workspace', 'id', 'html'],
+        },
+      },
+      {
+        name: 'get-artifact-url',
+        description: 'Get the URL for an artifact',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            workspace: {
+              type: 'string',
+              description: 'The workspace name',
+            },
+            id: {
+              type: 'string',
+              description: 'The artifact identifier',
+            },
+            version: {
+              type: 'number',
+              description: 'Specific version number (optional, defaults to latest)',
+            },
+          },
+          required: ['workspace', 'id'],
+        },
+      },
+      {
+        name: 'list-workspaces',
+        description: 'List all artifact workspaces',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'list-workspace-artifacts',
+        description: 'List all artifacts in a workspace',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            workspace: {
+              type: 'string',
+              description: 'The workspace name to list artifacts from',
+            },
+          },
+          required: ['workspace'],
+        },
+      },
     ],
   };
 });
@@ -124,6 +229,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return await executeStartServer(validatedInput);
     }
     
+    case 'store-artifact': {
+      const validatedInput = storeArtifactSchema.parse(args);
+      return await executeStoreArtifact(validatedInput);
+    }
+    
+    case 'update-artifact': {
+      const validatedInput = updateArtifactSchema.parse(args);
+      return await executeUpdateArtifact(validatedInput);
+    }
+    
+    case 'get-artifact-url': {
+      const validatedInput = getArtifactUrlSchema.parse(args);
+      return await executeGetArtifactUrl(validatedInput);
+    }
+    
+    case 'list-workspaces': {
+      const validatedInput = listWorkspacesSchema.parse(args);
+      return await executeListWorkspaces(validatedInput);
+    }
+    
+    case 'list-workspace-artifacts': {
+      const validatedInput = listWorkspaceArtifactsSchema.parse(args);
+      return await executeListWorkspaceArtifacts(validatedInput);
+    }
+    
     default:
       throw new Error(`Tool not found: ${name}`);
   }
@@ -133,6 +263,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   // Initialize storage
   await storageInstance.init();
+  await artifactStorage.init();
   
   // Check if HTTP server is running
   const serverRunning = await processManager.isServerRunning();

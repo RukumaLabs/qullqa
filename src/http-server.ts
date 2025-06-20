@@ -2,6 +2,14 @@ import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { storageInstance } from './storage.js';
+import { artifactStorage } from './artifact-storage.js';
+import { serveStatic } from '@hono/node-server/serve-static';
+import { readFile } from 'fs/promises';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = new Hono();
 
@@ -98,6 +106,9 @@ app.get('/', async (c) => {
 </head>
 <body>
     <h1>Qullqa Storage Server</h1>
+    <div class="nav" style="margin-bottom: 20px;">
+        <a href="/artifacts" style="color: #007bff; text-decoration: none;">→ View Artifacts (Versioned Storage)</a>
+    </div>
     <div class="stats">
         <strong>${items.length}</strong> items stored | 
         <strong>${items.reduce((sum, item) => sum + item.size, 0).toLocaleString()}</strong> bytes total
@@ -163,7 +174,231 @@ app.delete('/api/delete/:name', async (c) => {
   }
 });
 
-// Serve stored content
+// ===== ARTIFACT ROUTES =====
+
+// List all workspaces
+app.get('/a/', async (c) => {
+  const workspaces = await artifactStorage.listWorkspaces();
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Qullqa Artifact Workspaces</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            color: #007bff;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .workspace-list {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .workspace {
+            display: block;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 18px;
+        }
+        .workspace:hover {
+            background: #f8f9fa;
+        }
+        .empty {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Artifact Workspaces</h1>
+    <div class="nav">
+        <a href="/">← Back to Simple Storage</a>
+    </div>
+    <div class="workspace-list">
+        ${workspaces.length === 0 ? 
+          '<div class="empty">No workspaces yet. Use the store-artifact tool to create your first artifact.</div>' :
+          workspaces.map(ws => `<a href="/a/${ws}/" class="workspace">${ws}</a>`).join('')
+        }
+    </div>
+</body>
+</html>
+  `;
+  
+  return c.html(html);
+});
+
+// List artifacts in a workspace
+app.get('/a/:workspace/', async (c) => {
+  const workspace = c.req.param('workspace');
+  const artifacts = await artifactStorage.listWorkspaceArtifacts(workspace);
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>${workspace} - Qullqa Artifacts</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            color: #007bff;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .artifact-list {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .artifact {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .artifact:last-child {
+            border-bottom: none;
+        }
+        .artifact-info {
+            flex: 1;
+        }
+        .artifact-name {
+            font-weight: bold;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 18px;
+        }
+        .artifact-name:hover {
+            text-decoration: underline;
+        }
+        .artifact-meta {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .empty {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Workspace: ${workspace}</h1>
+    <div class="nav">
+        <a href="/a/">← Back to Workspaces</a>
+        <a href="/">← Back to Simple Storage</a>
+    </div>
+    <div class="artifact-list">
+        ${artifacts.length === 0 ? 
+          '<div class="empty">No artifacts in this workspace yet.</div>' :
+          artifacts.map(artifact => `
+            <div class="artifact">
+                <div class="artifact-info">
+                    <a href="/a/${workspace}/${artifact.id}/" class="artifact-name">${artifact.id}</a>
+                    <div class="artifact-meta">
+                        Version ${artifact.currentVersion} • 
+                        ${artifact.versions.length} total versions • 
+                        Updated ${new Date(artifact.updatedAt).toLocaleString()}
+                        ${artifact.description ? `<br>Description: ${artifact.description}` : ''}
+                    </div>
+                </div>
+            </div>
+          `).join('')
+        }
+    </div>
+</body>
+</html>
+  `;
+  
+  return c.html(html);
+});
+
+// Redirect to latest version
+app.get('/a/:workspace/:id', async (c) => {
+  const workspace = c.req.param('workspace');
+  const id = c.req.param('id');
+  return c.redirect(`/a/${workspace}/${id}/`);
+});
+
+// Serve artifact latest version
+app.get('/a/:workspace/:id/', async (c) => {
+  const workspace = c.req.param('workspace');
+  const id = c.req.param('id');
+  
+  try {
+    const artifactPath = join(__dirname, '..', 'artifacts', workspace, id, 'latest', 'index.html');
+    const html = await readFile(artifactPath, 'utf-8');
+    
+    c.header('X-Frame-Options', 'ALLOWALL');
+    c.header('Content-Security-Policy', "frame-ancestors *");
+    return c.html(html);
+  } catch (error) {
+    return c.text('Artifact not found', 404);
+  }
+});
+
+// Serve specific version
+app.get('/a/:workspace/:id/v:version/', async (c) => {
+  const workspace = c.req.param('workspace');
+  const id = c.req.param('id');
+  const version = c.req.param('version');
+  
+  try {
+    const versionPath = join(__dirname, '..', 'artifacts', workspace, id, 'versions', `v${version}`, 'index.html');
+    const html = await readFile(versionPath, 'utf-8');
+    
+    c.header('X-Frame-Options', 'ALLOWALL');
+    c.header('Content-Security-Policy', "frame-ancestors *");
+    return c.html(html);
+  } catch (error) {
+    return c.text('Version not found', 404);
+  }
+});
+
+// Serve stored content (legacy route for simple storage)
 app.get('/:name', async (c) => {
   const name = c.req.param('name');
   const item = await storageInstance.get(name);
